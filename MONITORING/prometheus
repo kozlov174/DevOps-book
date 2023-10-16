@@ -1,0 +1,47 @@
+Prometheus - это бесплатное программное приложение, используемое для мониторинга и оповещения о событиях.
+Он записывает метрики в базу данных временных рядов, созданную с использованием модели запроса HTTP, с гибкими запросами и оповещениями в реальном времени.
+
+Установка происходит при помощи стандартного пакета APT 
+Команда: sudo apt install prometheus 
+
+В ином случае можно скачать архив с prometheus с основного сайта: https://prometheus.io/download/
+И распаковать на сервер в директорию /usr/local/bin
+
+Для установки также понадобится папка с файлами конфигов
+Создадим её командой: sudo mkdir /etc/prometheus
+
+одним из основных файлов prometheus является конфигурационный, для доступа к нему воспользуемся командой: sudo nano /etc/prometheus/prometheus.yml
+Базовая конфигурация выглядит следующим образом:
+
+global:
+  scrape_interval: 15s
+scrape_configs:
+  - job_name: 'prometheus'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['localhost:9090']
+
+Она даёт понять, что данные будут сниматься каждые 15 секунд, а сам сервер на localhost с портом 9090, который можно заменить на любой удобный
+
+Для запуска программы понадобится пользователь prometheus: sudo useradd --no-create-home --shell /bin/false prometheus
+Осталось только создать файл systemd службы для удобного запуска prometheus. Для этого выполните команду: sudo systemctl edit --full --force prometheus.service
+
+[Unit]
+Description=Prometheus
+Wants=network-online.target
+After=network-online.target
+[Service]
+User=prometheus
+Group=prometheus
+Type=simple
+ExecStart=/usr/local/bin/prometheus \
+--config.file /etc/prometheus/prometheus.yml \
+--storage.tsdb.path /var/lib/prometheus/ \
+--web.console.templates=/etc/prometheus/consoles \
+--web.console.libraries=/etc/prometheus/console_libraries
+[Install]
+WantedBy=multi-user.target
+
+Для запуска prometheus воспользуемся командой: sudo systemctl start prometheus
+Чтобы убедиться, что все работет выполним команду: sudo systemctl status prometheus
+
